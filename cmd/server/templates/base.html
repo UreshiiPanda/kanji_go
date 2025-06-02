@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <link href="/static/css/output.css" rel="stylesheet">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-red-600">{{.Title}}</h1>
+        </header>
+        
+        <main>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="text-xl text-gray-800">{{.Message}}</p>
+                
+                <div class="mt-4">
+                    <button 
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                        hx-get="/hello"
+                        hx-target="#result"
+                        hx-swap="innerHTML"
+                    >
+                        Click me with HTMX
+                    </button>
+                </div>
+                
+                <div id="result" class="mt-4 p-4 bg-gray-100 rounded"></div>
+            </div>
+        </main>
+        
+        <footer class="mt-8 text-center text-gray-500">
+            <p>Kanji Go - A Golang Web App</p>
+        </footer>
+    </div>
+</body>
+</html>

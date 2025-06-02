@@ -1,0 +1,18 @@
+{
+  "name": "kanji-go",
+  "version": "1.0.0",
+  "description": "Kanji Go Web App",
+  "scripts": {
+  },
+  "devDependencies": {
+    "tailwindcss": "^4.1.8"
+  },
+  "main": "tailwind.config.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.8"
+  }
+}
