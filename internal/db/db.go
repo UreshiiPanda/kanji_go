@@ -1,7 +1,6 @@
 package db
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -40,26 +39,4 @@ func GetDBConnection() (*sql.DB, error) {
 
 	log.Println("Successfully connected to PostgreSQL database")
 	return db, nil
-}
-
-// For direct pgx usage when needed (e.g., COPY, LISTEN/NOTIFY)
-// this just adds extra PGX features which you probably never need
-func GetPgxConnection() (*pgx.Conn, error) {
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-
-	// Construct connection string
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=require",
-		dbUser, dbPassword, dbHost, dbPort, dbName)
-
-	// Connect using pgx directly
-	conn, err := pgx.Connect(context.Background(), connStr)
-	if err != nil {
-		return nil, fmt.Errorf("unable to connect to database: %w", err)
-	}
-
-	return conn, nil
 }

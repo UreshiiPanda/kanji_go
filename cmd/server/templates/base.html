@@ -1,40 +1,65 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{.Title}}</title>
-    <link href="/static/css/output.css" rel="stylesheet">
+    <!-- BeerCSS scoped version -->
+    <link href="/static/css/beer.scoped.min.css" rel="stylesheet" />
+    <script type="module" src="/static/js/beer.min.js"></script>
+    <script
+      type="module"
+      src="/static/js/material-dynamic-colors.min.js"
+    ></script>
+    <!-- Tailwind CSS -->
+    <link href="/static/css/output.css" rel="stylesheet" />
+    <!-- HTMX -->
     <script src="/static/js/htmx.min.js"></script>
-</head>
-<body class="bg-gray-100">
+  </head>
+  <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
-        <header class="mb-8">
-            <h1 class="text-3xl font-bold text-yellow-600">{{.Title}}</h1>
-        </header>
-        
-        <main>
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <p class="text-xl text-gray-800">{{.Message}}</p>
-                
-                <div class="mt-4">
-                    <button 
-                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                        hx-get="/hello"
-                        hx-target="#result"
-                        hx-swap="innerHTML"
-                    >
-                        Click me with HTMX
-                    </button>
-                </div>
-                
-                <div id="result" class="mt-4 p-4 bg-gray-100 rounded"></div>
-            </div>
-        </main>
-        
-        <footer class="mt-8 text-center text-gray-500">
-            <p>Kanji Go - A Golang Web App</p>
-        </footer>
+      <header class="mb-8">
+        <h1 class="text-3xl font-bold text-red-600">{{.Title}}</h1>
+      </header>
+
+      <main>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <p class="text-xl text-gray-800">{{.Message}}</p>
+
+          <div class="mt-4">
+            <button
+              class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded ml-2"
+              hx-get="/api/kanji"
+              hx-target="#kanji-list"
+            >
+              Load Kanji List
+            </button>
+
+            <button
+              class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded ml-2"
+              hx-get="/dialog"
+              hx-target="#dialog-container"
+              hx-swap="innerHTML"
+            >
+              Show BeerCSS Dialog
+            </button>
+          </div>
+
+          <div id="result" class="mt-4 p-4 bg-gray-100 rounded"></div>
+
+          <div id="kanji-list" class="mt-4 p-4 bg-gray-100 rounded">
+            <!-- Kanji list will be loaded here -->
+          </div>
+        </div>
+      </main>
+
+      <footer class="mt-8 text-center text-gray-500">
+        <p>Kanji Go - A Golang Web App</p>
+      </footer>
     </div>
-</body>
+
+    <div id="dialog-container" class="beer">
+      <!-- BeerCSS modal overlay will be loaded here -->
+    </div>
+  </body>
 </html>
