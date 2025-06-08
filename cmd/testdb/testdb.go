@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 
@@ -16,17 +15,15 @@ func main() {
 	}
 
 	// Get database connection
-	conn, err := db.GetPgxConnection()
+	dbConn, err := db.GetDBConnection()
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer conn.Close(context.Background())
+	defer dbConn.Close()
 
 	// Test connection with simple query
 	var count int
-	err = conn.QueryRow(context.Background(),
-		"SELECT COUNT(*) FROM kanji_go.kanji",
-	).Scan(&count)
+	err = dbConn.QueryRow("SELECT COUNT(*) FROM kanji_go.kanji").Scan(&count)
 
 	if err != nil {
 		log.Fatalf("Failed to query database: %v", err)
@@ -35,8 +32,7 @@ func main() {
 	fmt.Printf("Database connection successful! Found %d kanji in the database.\n", count)
 	
 	// List a few kanji as additional verification
-	rows, err := conn.Query(context.Background(),
-		"SELECT kanji_char_id, kanji_char FROM kanji_go.kanji LIMIT 5")
+	rows, err := dbConn.Query("SELECT kanji_char_id, kanji_char FROM kanji_go.kanji LIMIT 5")
 	if err != nil {
 		log.Fatalf("Failed to query kanji: %v", err)
 	}

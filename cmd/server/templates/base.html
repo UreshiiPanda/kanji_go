@@ -4,17 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{.Title}}</title>
-    <!-- BeerCSS scoped version -->
-    <link href="/static/css/beer.scoped.min.css" rel="stylesheet" />
-    <script type="module" src="/static/js/beer.min.js"></script>
-    <script
-      type="module"
-      src="/static/js/material-dynamic-colors.min.js"
-    ></script>
     <!-- Tailwind CSS -->
     <link href="/static/css/output.css" rel="stylesheet" />
-    <!-- HTMX -->
+    <!-- BeerCSS scoped version -->
+    <link href="/static/css/beer.scoped.min.css" rel="stylesheet" />
+
+    <!-- HTMX - Load this FIRST -->
     <script src="/static/js/htmx.min.js"></script>
+
+    <!-- BeerCSS - Load these AFTER HTMX -->
+    <script type="module" src="/static/js/beer.min.js"></script>
+    <script type="module" src="/static/js/material-dynamic-colors.min.js"></script>
+
+    <!-- HTMX setup for CSRF - Move to DOMContentLoaded to ensure HTMX is loaded -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        if (htmx && htmx.config) {
+          htmx.config.headers = htmx.config.headers || {};
+          htmx.config.headers["X-CSRF-Token"] = "{{.csrfToken}}";
+        } else {
+          console.error("HTMX not properly loaded");
+        }
+      });
+    </script>
   </head>
   <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
