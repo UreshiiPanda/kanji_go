@@ -58,11 +58,8 @@ func main() {
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.Cors())
 	r.Use(middleware.GetCSRFMiddleware())
-	
-	// Add the MIME type middleware
-	r.Use(middleware.SetMimeTypes)
 
-	// Static files - still using embedded filesystem
+	// Static files - using standard file server
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticSubFS))))
 
 	// Routes

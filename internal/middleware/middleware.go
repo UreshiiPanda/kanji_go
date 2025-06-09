@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/go-chi/cors"
 	"github.com/gorilla/csrf"
@@ -46,23 +45,6 @@ func Cors() func(http.Handler) http.Handler {
 		AllowCredentials: false,
 		MaxAge:           300, // Maximum value not ignored by any major browsers
 	})
-}
-
-// SetMimeTypes returns middleware that sets correct MIME types for static files
-// In middleware.go
-func SetMimeTypes(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        // Only process static files
-        if len(r.URL.Path) > 8 && r.URL.Path[:8] == "/static/" {
-            // Force correct MIME type for JavaScript modules
-            if filepath.Ext(r.URL.Path) == ".js" {
-                w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-            } else if filepath.Ext(r.URL.Path) == ".css" {
-                w.Header().Set("Content-Type", "text/css; charset=utf-8")
-            }
-        }
-        next.ServeHTTP(w, r)
-    })
 }
 
 
