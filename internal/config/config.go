@@ -9,7 +9,8 @@ import (
 
 // AppConfig holds the application configuration
 type AppConfig struct {
-	Port string
+	Port   string
+	AppEnv string // Added APP_ENV
 }
 
 // Load loads the application configuration
@@ -25,7 +26,19 @@ func Load() *AppConfig {
 		port = "8080"
 	}
 	
-	return &AppConfig{
-		Port: port,
+	// Get environment setting
+	appEnv := os.Getenv("APP_ENV")
+	if appEnv == "" {
+		appEnv = "LOCAL" // Default to LOCAL if not specified
 	}
+	
+	return &AppConfig{
+		Port:   port,
+		AppEnv: appEnv,
+	}
+}
+
+// IsProd returns true if running in production environment
+func (c *AppConfig) IsProd() bool {
+	return c.AppEnv == "PROD"
 }

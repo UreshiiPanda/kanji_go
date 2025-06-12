@@ -21,8 +21,8 @@ COPY . .
 # Build Tailwind CSS
 RUN cd cmd/server && npx @tailwindcss/cli -i ./static/css/input.css -o ./static/css/output.css
 
-# Build the Go binary with embedded files
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/server
+# Build the Go binary with embedded files (requires specifier for local Apple Silicon)
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/server ./cmd/server
 
 # Final stage - minimal image
 FROM alpine:3.18
