@@ -20,6 +20,23 @@ resource "google_storage_bucket" "app_images" {
   # Optional settings for your bucket
   uniform_bucket_level_access = true
   public_access_prevention    = "inherited"  # Allows public access for images through object ACLs
+  
+  # CORS configuration
+  cors {
+    origin          = ["http://localhost:8080", "https://kanji-go-pdjzxrqjaq-uc.a.run.app"]
+    method          = ["GET", "POST", "PUT", "DELETE"]
+    response_header = ["Content-Type"]
+    max_age_seconds = 3600
+  }
+}
+
+# Make bucket publicly accessible
+resource "google_storage_bucket_iam_binding" "public_access" {
+  bucket = google_storage_bucket.app_images.name
+  role   = "roles/storage.objectViewer"
+  members = [
+    "allUsers",
+  ]
 }
 
 # Service account for Cloud Run to access DB and Cloud Storage

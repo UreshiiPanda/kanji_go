@@ -67,7 +67,8 @@ func main() {
 		data := map[string]any{
 			"Title":     "Kanji Go",
 			"Message":   "Welcome to Kanji Go!",
-			"csrfToken": csrf.Token(r), // Add CSRF token for JavaScript
+			"csrfField": csrf.TemplateField(r),
+			"csrfToken": csrf.Token(r), // Add token directly to template data
 		}
 
 		err := tmpl.Execute(w, data)
@@ -77,10 +78,14 @@ func main() {
 			return
 		}
 	})
-	
+
+	// Add all routes including the previously missing ones
 	r.Get("/api/kanji", handlers.GetKanjiHandler(dbConn))
 	r.Get("/dialog", handlers.GetDialogHandler())
 	r.Get("/empty", handlers.EmptyHandler())
+	r.Get("/list-files", handlers.ListFilesHandler())
+	r.Post("/upload", handlers.UploadHandler())
+	r.Post("/delete-file", handlers.DeleteFileHandler())
 
 	// Start server
 	log.Printf("Server starting on port %s", cfg.Port)

@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["http://localhost:8080", "https://kanji-go-pdjzxrqjaq-uc.a.run.app"],
+    "method": ["GET", "POST", "PUT", "DELETE"],
+    "responseHeader": ["Content-Type"],
+    "maxAgeSeconds": 3600
+  }
+]

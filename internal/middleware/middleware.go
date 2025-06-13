@@ -12,31 +12,39 @@ import (
 
 // GetCSRFMiddleware returns the CSRF protection middleware
 func GetCSRFMiddleware() func(http.Handler) http.Handler {
-	// Get CSRF key from environment variable
-	csrfKeyStr := os.Getenv("CSRF_KEY")
-	if csrfKeyStr == "" {
-		// Generate a key for development - in production, use environment variable
-		log.Println("Warning: CSRF_KEY not set, generating a temporary one")
-		tempKey := make([]byte, 32)
-		csrfKeyStr = base64.StdEncoding.EncodeToString(tempKey)
-	}
-
-	csrfKey, err := base64.StdEncoding.DecodeString(csrfKeyStr)
-	if err != nil {
-		log.Fatalf("Error decoding CSRF key: %v", err)
-	}
-
-	// Use secure cookies in production only
-	env := os.Getenv("APP_ENV")
-	secure := env == "PROD"
-
-	return csrf.Protect(
-		csrfKey,
-		csrf.Path("/"),      // Use the same path for all requests
-		csrf.Secure(secure), // True in PROD, false in LOCAL
-		csrf.HttpOnly(true),
-		csrf.SameSite(csrf.SameSiteStrictMode),
-	)
+    env := os.Getenv("APP_ENV")
+    
+    // For local development, just return a pass-through middleware
+    if env != "PROD" {
+        log.Println("CSRF protection disabled for local development")
+        return func(next http.Handler) http.Handler {
+            return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+                next.ServeHTTP(w, r)
+            })
+        }
+    }
+    
+    // Production environment - use full CSRF protection
+    csrfKeyStr := os.Getenv("CSRF_KEY")
+    if csrfKeyStr == "" {
+        log.Fatalf("CSRF_KEY not set in production environment")
+    }
+    
+    csrfKey, err := base64.StdEncoding.DecodeString(csrfKeyStr)
+    if err != nil {
+        log.Fatalf("Error decoding CSRF key: %v", err)
+    }
+    
+    // Create CSRF handler WITHOUT specifying domain
+    // This makes it use the domain from the request automatically
+    return csrf.Protect(
+        csrfKey,
+        csrf.Path("/"),
+        csrf.Secure(true),
+        csrf.HttpOnly(true),
+        csrf.SameSite(csrf.SameSiteStrictMode),
+        // No domain specified = use the domain from the request
+    )
 }
 
 // Cors returns the CORS middleware based on environment
@@ -62,25 +70,23 @@ func developmentCors() func(http.Handler) http.Handler {
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: false,
+		AllowCredentials: true,
 		MaxAge:           300, // Maximum value not ignored by any major browsers
 	})
 }
 
 // productionCors returns CORS settings for production
 func productionCors() func(http.Handler) http.Handler {
-	return cors.Handler(cors.Options{
-		// Only allow specific origins
-		AllowedOrigins: []string{
-			"https://kanji-go-pdjzxrqjaq-uc.a.run.app",
-		},
-		// Restrict methods as needed
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		// Only allow necessary headers
-		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders: []string{"Link"},
-		// Control credentials in production
-		AllowCredentials: true,
-		MaxAge:           300,
-	})
+    return cors.Handler(cors.Options{
+        // Allow both domains
+        AllowedOrigins: []string{
+            "https://kanji-go-pdjzxrqjaq-uc.a.run.app",
+            "https://kanji-go-111333019928.us-central1.run.app",
+        },
+        AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+        AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+        ExposedHeaders:   []string{"Link"},
+        AllowCredentials: true,
+        MaxAge:           300,
+    })
 }

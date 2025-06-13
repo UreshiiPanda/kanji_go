@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{.Title}}</title>
+
+    <!-- Add CSRF token meta tag -->
+    <meta name="csrf-token" content="{{.csrfToken}}" />
+
     <!-- Tailwind CSS -->
     <link href="/static/css/output.css" rel="stylesheet" />
     <!-- BeerCSS scoped version -->
@@ -14,17 +18,34 @@
 
     <!-- BeerCSS - Load these AFTER HTMX -->
     <script type="module" src="/static/js/beer.min.js"></script>
-    <script type="module" src="/static/js/material-dynamic-colors.min.js"></script>
+    <script
+      type="module"
+      src="/static/js/material-dynamic-colors.min.js"
+    ></script>
 
     <!-- HTMX setup for CSRF - Move to DOMContentLoaded to ensure HTMX is loaded -->
     <script>
       document.addEventListener("DOMContentLoaded", function () {
-        if (htmx && htmx.config) {
-          htmx.config.headers = htmx.config.headers || {};
-          htmx.config.headers["X-CSRF-Token"] = "{{.csrfToken}}";
-        } else {
-          console.error("HTMX not properly loaded");
-        }
+        // Debug CSRF token
+        console.log(
+          "CSRF Token from meta:",
+          document
+            .querySelector('meta[name="csrf-token"]')
+            .getAttribute("content"),
+        );
+
+        // Force add token to all forms
+        document.querySelectorAll("form").forEach(function (form) {
+          // Add X-CSRF-Token header to all HTMX requests
+          form.addEventListener("htmx:configRequest", function (event) {
+            console.log("Adding CSRF token to request headers");
+            const token = document
+              .querySelector('meta[name="csrf-token"]')
+              .getAttribute("content");
+            event.detail.headers["X-CSRF-Token"] = token;
+            console.log("Token added:", token);
+          });
+        });
       });
     </script>
   </head>
@@ -61,6 +82,87 @@
 
           <div id="kanji-list" class="mt-4 p-4 bg-gray-100 rounded">
             <!-- Kanji list will be loaded here -->
+          </div>
+
+          <!-- Cloud Storage Testing -->
+          <div class="mt-6 p-4 bg-gray-100 rounded">
+            <h2 class="text-xl font-semibold mb-4">Cloud Storage Testing</h2>
+
+            <!-- File Upload Form -->
+            <form
+              hx-encoding="multipart/form-data"
+              hx-post="/upload"
+              hx-target="#upload-result"
+              hx-indicator="#upload-indicator"
+              class="mb-4"
+            >
+              {{.csrfField}}
+
+              <div class="mb-4">
+                <label
+                  class="block text-gray-700 text-sm font-bold mb-2"
+                  for="kanji_char_id"
+                >
+                  Kanji ID:
+                </label>
+                <input
+                  class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  type="number"
+                  id="kanji_char_id"
+                  name="kanji_char_id"
+                  placeholder="Enter Kanji ID (e.g., 1)"
+                  required
+                />
+              </div>
+              <div class="mb-4">
+                <label
+                  class="block text-gray-700 text-sm font-bold mb-2"
+                  for="image"
+                >
+                  Upload Image:
+                </label>
+                <input
+                  class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  type="file"
+                  id="image"
+                  name="image"
+                  accept="image/jpeg,image/png,image/gif"
+                  required
+                />
+              </div>
+              <div class="flex items-center justify-between">
+                <button
+                  class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                  type="submit"
+                >
+                  Upload to Cloud Storage
+                </button>
+                <div id="upload-indicator" class="htmx-indicator text-gray-600">
+                  Uploading...
+                </div>
+              </div>
+            </form>
+
+            <!-- Upload Result Container -->
+            <div id="upload-result" class="mt-4 border-t pt-4">
+              <!-- Upload results will be shown here -->
+            </div>
+
+            <!-- List files button -->
+            <div class="mt-4">
+              <button
+                class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                hx-get="/list-files"
+                hx-target="#files-list"
+              >
+                List Files in Bucket
+              </button>
+            </div>
+
+            <!-- Files list container -->
+            <div id="files-list" class="mt-4">
+              <!-- Files list will be shown here -->
+            </div>
           </div>
         </div>
       </main>
