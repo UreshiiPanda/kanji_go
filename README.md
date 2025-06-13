@@ -17,6 +17,7 @@ This is a web app to help Kanji learners memorize their Kanji with help from AI
 
 <a name="readme-top"></a>
 
-<!-- Kanji Go Gif -->
-![Kanji Go](https://github.com/UreshiiPanda/KunanPacha/assets/39992411/6afa6a1f-a032-4ce2-8202-6645f7d255f8)
+<!-- Kanji Go Image -->
+<img width="1607" alt="Screenshot 2025-06-13 at 16 31 13" src="https://github.com/user-attachments/assets/372fa093-9cc4-4a84-bd25-f72de0f98ee7" />
+
 
