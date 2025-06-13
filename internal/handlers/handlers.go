@@ -15,10 +15,10 @@ func HomeHandler(tmpl *template.Template) http.HandlerFunc {
 		data := map[string]any{
 			"Title":     "Kanji Go",
 			"Message":   "Welcome to Kanji Go!",
-			"csrfToken": csrf.Token(r), // Add CSRF token for JavaScript
+			"csrfToken": csrf.Token(r), // Add CSRF token for HTMX
 		}
 
-		err := tmpl.Execute(w, data)
+		err := tmpl.ExecuteTemplate(w, "base.html", data)
 		if err != nil {
 			log.Printf("Error executing template: %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -27,73 +27,66 @@ func HomeHandler(tmpl *template.Template) http.HandlerFunc {
 	}
 }
 
+// KanjiData represents a kanji character's data
+type KanjiData struct {
+    ID              int
+    KanjiChar       string
+    RomajiOnyomi    string
+    RomajiKunyomi   string
+    HiraganaOnyomi  string
+    HiraganaKunyomi string
+    JLPTLevel       string
+}
+
 // GetKanjiHandler returns all kanji from the database
-func GetKanjiHandler(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Query the database
-		rows, err := db.Query(`
-			SELECT kanji_char_id, kanji_char, romaji_onyomi, romaji_kunyomi, 
-			       hiragana_onyomi, hiragana_kunyomi, jlpt_level
-			FROM kanji_go.kanji
-			ORDER BY kanji_char_id
-		`)
-		if err != nil {
-			log.Printf("Error querying kanji: %v", err)
-			http.Error(w, "Failed to retrieve kanji", http.StatusInternalServerError)
-			return
-		}
-		defer rows.Close()
+func GetKanjiHandler(db *sql.DB, tmpl *template.Template) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        // Query the database
+        rows, err := db.Query(`
+            SELECT kanji_char_id, kanji_char, romaji_onyomi, romaji_kunyomi, 
+                   hiragana_onyomi, hiragana_kunyomi, jlpt_level
+            FROM kanji_go.kanji
+            ORDER BY kanji_char_id
+        `)
+        if err != nil {
+            log.Printf("Error querying kanji: %v", err)
+            http.Error(w, "Failed to retrieve kanji", http.StatusInternalServerError)
+            return
+        }
+        defer rows.Close()
 
-		// Build HTML response
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">`))
+        // Create a slice to hold all kanji data
+        var kanjiList []KanjiData
 
-		// Track if we found any kanji
-		count := 0
+        // Process each row
+        for rows.Next() {
+            var kanji KanjiData
+            if err := rows.Scan(&kanji.ID, &kanji.KanjiChar, &kanji.RomajiOnyomi, 
+                               &kanji.RomajiKunyomi, &kanji.HiraganaOnyomi, 
+                               &kanji.HiraganaKunyomi, &kanji.JLPTLevel); err != nil {
+                log.Printf("Error scanning row: %v", err)
+                continue
+            }
+            kanjiList = append(kanjiList, kanji)
+        }
 
-		// Process each row
-		for rows.Next() {
-			count++
-			var id int
-			var kanjiChar, romajiOnyomi, romajiKunyomi, hiraganaOnyomi, hiraganaKunyomi, jlptLevel string
+        // Check for errors from iterating over rows
+        if err := rows.Err(); err != nil {
+            log.Printf("Error iterating rows: %v", err)
+        }
 
-			if err := rows.Scan(&id, &kanjiChar, &romajiOnyomi, &romajiKunyomi,
-				&hiraganaOnyomi, &hiraganaKunyomi, &jlptLevel); err != nil {
-				log.Printf("Error scanning row: %v", err)
-				continue
-			}
+        // Prepare template data
+        data := map[string]any{
+            "KanjiList": kanjiList,
+        }
 
-			// Generate HTML for this kanji
-			kanjiHTML := `
-			<div class="border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
-				<div class="text-center mb-2">
-					<span class="text-4xl font-bold">` + kanjiChar + `</span>
-				</div>
-				<div class="text-sm text-gray-700">
-					<p><span class="font-semibold">On'yomi:</span> ` + hiraganaOnyomi + ` (` + romajiOnyomi + `)</p>
-					<p><span class="font-semibold">Kun'yomi:</span> ` + hiraganaKunyomi + ` (` + romajiKunyomi + `)</p>
-					<p><span class="font-semibold">JLPT Level:</span> ` + jlptLevel + `</p>
-				</div>
-			</div>`
-
-			w.Write([]byte(kanjiHTML))
-		}
-
-		// Check for errors from iterating over rows
-		if err := rows.Err(); err != nil {
-			log.Printf("Error iterating rows: %v", err)
-		}
-
-		// If no kanji found, show a message
-		if count == 0 {
-			w.Write([]byte(`
-			<div class="col-span-3 text-center py-4 text-gray-500">
-				No kanji found in the database.
-			</div>`))
-		}
-
-		w.Write([]byte(`</div>`))
-	}
+        // Execute the template
+        w.Header().Set("Content-Type", "text/html")
+        if err := tmpl.ExecuteTemplate(w, "kanji-list", data); err != nil {
+            log.Printf("Error executing kanji-list template: %v", err)
+            http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+        }
+    }
 }
 
 // GetDialogHandler returns a BeerCSS dialog

@@ -1,0 +1,31 @@
+{{define "files-list"}}
+<div class="bg-white p-4 rounded shadow">
+    <h3 class="text-lg font-bold mb-2">Files in Bucket</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {{if .Files}}
+            {{range .Files}}
+            <div class="border border-gray-200 rounded-lg p-3">
+                <div class="mb-2">
+                    <img src="{{.PublicURL}}" alt="{{.Name}}" class="max-w-full h-auto rounded max-h-32 mx-auto">
+                </div>
+                <div class="text-sm text-gray-700 truncate">
+                    <p>Name: {{.Name}}</p>
+                    <p>Size: {{.SizeKB}} KB</p>
+                    <p>Created: {{.Created}}</p>
+                    <form hx-post="/delete-file" hx-target="#files-list" class="mt-2">
+                        <input type="hidden" name="objectName" value="{{.Name}}">
+                        <button type="submit" class="bg-red-500 hover:bg-red-700 text-white text-xs py-1 px-2 rounded">
+                            Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {{end}}
+        {{else}}
+            <div class="col-span-3 text-center py-4 text-gray-500">
+                No files found in the bucket.
+            </div>
+        {{end}}
+    </div>
+</div>
+{{end}}

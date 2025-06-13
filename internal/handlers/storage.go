@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"html/template"
 
 	"cloud.google.com/go/storage"
 	"github.com/google/uuid"
@@ -239,98 +240,81 @@ func getContentType(filename string) string {
 	}
 }
 
+// FileData represents file information
+type FileData struct {
+    Name      string
+    SizeKB    int64
+    Created   string
+    PublicURL string
+}
+
 // ListFilesHandler lists files in the Cloud Storage bucket
-func ListFilesHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
-		defer cancel()
-		
-		// Check if storageClient is initialized
-		if storageClient == nil {
-			log.Println("Storage client not initialized, initializing now")
-			if err := InitStorage(ctx); err != nil {
-				log.Printf("Failed to initialize storage client: %v", err)
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
-				return
-			}
-		}
-		
-		// Get bucket name from environment
-		bucketName := GetBucketName()
-		
-		// List objects in the bucket
-		it := storageClient.Bucket(bucketName).Objects(ctx, &storage.Query{
-			Prefix: "uploads/", // Optional: filter by prefix
-		})
-		
-		// Start the HTML response
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`
-			<div class="bg-white p-4 rounded shadow">
-				<h3 class="text-lg font-bold mb-2">Files in Bucket</h3>
-				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-		`))
-		
-		// Track if we found any files
-		count := 0
-		
-		// Process each object
-		for {
-			attrs, err := it.Next()
-			if err == iterator.Done {
-				break
-			}
-			if err != nil {
-				log.Printf("Error iterating bucket objects: %v", err)
-				http.Error(w, "Error listing files", http.StatusInternalServerError)
-				return
-			}
-			
-			count++
-			
-			// Generate a public URL for the file
-			publicURL := fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucketName, attrs.Name)
-			
-			// Only display images
-			if isAllowedFileType(attrs.Name) {
-				fileHTML := fmt.Sprintf(`
-					<div class="border border-gray-200 rounded-lg p-3">
-						<div class="mb-2">
-							<img src="%s" alt="%s" class="max-w-full h-auto rounded max-h-32 mx-auto">
-						</div>
-						<div class="text-sm text-gray-700 truncate">
-							<p>Name: %s</p>
-							<p>Size: %d KB</p>
-							<p>Created: %s</p>
-							<form hx-post="/delete-file" hx-target="#files-list" class="mt-2">
-								<input type="hidden" name="objectName" value="%s">
-								<button type="submit" class="bg-red-500 hover:bg-red-700 text-white text-xs py-1 px-2 rounded">
-									Delete
-								</button>
-							</form>
-						</div>
-					</div>
-				`, publicURL, attrs.Name, attrs.Name, attrs.Size/1024, attrs.Created.Format("2006-01-02"), attrs.Name)
-				
-				w.Write([]byte(fileHTML))
-			}
-		}
-		
-		// If no files found, show a message
-		if count == 0 {
-			w.Write([]byte(`
-				<div class="col-span-3 text-center py-4 text-gray-500">
-					No files found in the bucket.
-				</div>
-			`))
-		}
-		
-		// Close the HTML
-		w.Write([]byte(`
-				</div>
-			</div>
-		`))
-	}
+func ListFilesHandler(tmpl *template.Template) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+        defer cancel()
+        
+        // Check if storageClient is initialized
+        if storageClient == nil {
+            log.Println("Storage client not initialized, initializing now")
+            if err := InitStorage(ctx); err != nil {
+                log.Printf("Failed to initialize storage client: %v", err)
+                http.Error(w, "Internal server error", http.StatusInternalServerError)
+                return
+            }
+        }
+        
+        // Get bucket name from environment
+        bucketName := GetBucketName()
+        
+        // List objects in the bucket
+        it := storageClient.Bucket(bucketName).Objects(ctx, &storage.Query{
+            Prefix: "uploads/", // Optional: filter by prefix
+        })
+        
+        // Create a slice to hold file data
+        var files []FileData
+        
+        // Process each object
+        for {
+            attrs, err := it.Next()
+            if err == iterator.Done {
+                break
+            }
+            if err != nil {
+                log.Printf("Error iterating bucket objects: %v", err)
+                http.Error(w, "Error listing files", http.StatusInternalServerError)
+                return
+            }
+            
+            // Only display images
+            if isAllowedFileType(attrs.Name) {
+                // Generate a public URL for the file
+                publicURL := fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucketName, attrs.Name)
+                
+                file := FileData{
+                    Name:      attrs.Name,
+                    SizeKB:    attrs.Size / 1024,
+                    Created:   attrs.Created.Format("2006-01-02"),
+                    PublicURL: publicURL,
+                }
+                
+                files = append(files, file)
+            }
+        }
+        
+        // Prepare template data
+        data := map[string]any{
+            "Files": files,
+        }
+        
+        // Execute the template
+        w.Header().Set("Content-Type", "text/html")
+        if err := tmpl.ExecuteTemplate(w, "files-list", data); err != nil {
+            log.Printf("Error executing files-list template: %v", err)
+            http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+        }
+    }
 }
 
 // DeleteFileHandler deletes a file from Google Cloud Storage

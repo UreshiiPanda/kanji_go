@@ -61,11 +61,6 @@ func main() {
 	
 	fmt.Printf("✅ Successfully uploaded test file: %s\n", testFileName)
 
-	// Make the file public
-	if err := object.ACL().Set(ctx, storage.AllUsers, storage.RoleReader); err != nil {
-		log.Printf("Warning: Failed to make file public: %v", err)
-	}
-
 	// List files in bucket
 	fmt.Println("\nListing files in bucket:")
 	fmt.Println("-----------------------")
