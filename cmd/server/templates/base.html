@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{.Title}}</title>
 
-    <!-- Add CSRF token meta tag -->
-    <meta name="csrf-token" content="{{.csrfToken}}" />
-
     <!-- Tailwind CSS -->
     <link href="/static/css/output.css" rel="stylesheet" />
     <!-- BeerCSS scoped version -->
@@ -18,38 +15,10 @@
 
     <!-- BeerCSS - Load these AFTER HTMX -->
     <script type="module" src="/static/js/beer.min.js"></script>
-    <script
-      type="module"
-      src="/static/js/material-dynamic-colors.min.js"
-    ></script>
-
-    <!-- HTMX setup for CSRF - Move to DOMContentLoaded to ensure HTMX is loaded -->
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        // Debug CSRF token
-        console.log(
-          "CSRF Token from meta:",
-          document
-            .querySelector('meta[name="csrf-token"]')
-            .getAttribute("content"),
-        );
-
-        // Force add token to all forms
-        document.querySelectorAll("form").forEach(function (form) {
-          // Add X-CSRF-Token header to all HTMX requests
-          form.addEventListener("htmx:configRequest", function (event) {
-            console.log("Adding CSRF token to request headers");
-            const token = document
-              .querySelector('meta[name="csrf-token"]')
-              .getAttribute("content");
-            event.detail.headers["X-CSRF-Token"] = token;
-            console.log("Token added:", token);
-          });
-        });
-      });
-    </script>
+    <script type="module" src="/static/js/material-dynamic-colors.min.js"></script>
   </head>
-  <body class="bg-gray-100">
+
+  <body class="bg-gray-100" hx-headers='{"X-CSRF-Token": "{{.csrfToken}}"}'>
     <div class="container mx-auto px-4 py-8">
       <header class="mb-8">
         <h1 class="text-3xl font-bold text-red-600">{{.Title}}</h1>
@@ -88,7 +57,7 @@
           <div class="mt-6 p-4 bg-gray-100 rounded">
             <h2 class="text-xl font-semibold mb-4">Cloud Storage Testing</h2>
 
-            <!-- File Upload Form -->
+            <!-- File Upload Form - No csrf field needed -->
             <form
               hx-encoding="multipart/form-data"
               hx-post="/upload"
@@ -96,8 +65,6 @@
               hx-indicator="#upload-indicator"
               class="mb-4"
             >
-              {{.csrfField}}
-
               <div class="mb-4">
                 <label
                   class="block text-gray-700 text-sm font-bold mb-2"

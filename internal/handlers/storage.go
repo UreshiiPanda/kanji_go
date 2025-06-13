@@ -14,7 +14,6 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/google/uuid"
 	"google.golang.org/api/iterator"
-	"github.com/gorilla/csrf"
 )
 
 // Maximum file size (5MB)
@@ -240,36 +239,11 @@ func getContentType(filename string) string {
 	}
 }
 
-// DeleteFileHandler deletes a file from Google Cloud Storage
-func DeleteFileHandler() http.HandlerFunc {
+// ListFilesHandler lists files in the Cloud Storage bucket
+func ListFilesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Only allow POST requests for deletion
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		
-		// Extract the object name from the request
-		if err := r.ParseForm(); err != nil {
-			log.Printf("Error parsing form: %v", err)
-			http.Error(w, "Error parsing form", http.StatusBadRequest)
-			return
-		}
-		
-		objectName := r.FormValue("objectName")
-		if objectName == "" {
-			http.Error(w, "Object name not provided", http.StatusBadRequest)
-			return
-		}
-		
-		log.Printf("Request to delete object: %s", objectName)
-		
-		// Set a reasonable timeout
 		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 		defer cancel()
-		
-		// Get bucket name from environment
-		bucketName := GetBucketName()
 		
 		// Check if storageClient is initialized
 		if storageClient == nil {
@@ -279,61 +253,10 @@ func DeleteFileHandler() http.HandlerFunc {
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
-			defer CloseStorage()
-		}
-		
-		// Delete the object
-		object := storageClient.Bucket(bucketName).Object(objectName)
-		if err := object.Delete(ctx); err != nil {
-			log.Printf("Error deleting object %s: %v", objectName, err)
-			http.Error(w, "Error deleting file", http.StatusInternalServerError)
-			return
-		}
-		
-		log.Printf("Successfully deleted object: %s", objectName)
-		
-		// Get CSRF token for the return HTML
-		csrfField := csrf.TemplateField(r)
-		
-		// Return success response for HTMX
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`
-			<div class="delete-success bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4">
-				<p>File deleted successfully!</p>
-				<form hx-get="/list-files" hx-target="#files-list" class="mt-2">
-					` + string(csrfField) + `
-					<button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white text-xs py-1 px-2 rounded">
-						Refresh File List
-					</button>
-				</form>
-			</div>
-		`))
-	}
-}
-
-// ListFilesHandler lists files in the Cloud Storage bucket
-func ListFilesHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
-		defer cancel()
-		
-		// Check if storageClient is initialized - ADDED THIS CHECK
-		if storageClient == nil {
-			log.Println("Storage client not initialized, initializing now")
-			if err := InitStorage(ctx); err != nil {
-				log.Printf("Failed to initialize storage client: %v", err)
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
-				return
-			}
-			// Don't defer CloseStorage() here as it will close immediately
-			// We'll keep the client for future requests
 		}
 		
 		// Get bucket name from environment
 		bucketName := GetBucketName()
-		
-		// Get CSRF token for the forms
-		csrfField := csrf.TemplateField(r)
 		
 		// List objects in the bucket
 		it := storageClient.Bucket(bucketName).Objects(ctx, &storage.Query{
@@ -380,7 +303,6 @@ func ListFilesHandler() http.HandlerFunc {
 							<p>Size: %d KB</p>
 							<p>Created: %s</p>
 							<form hx-post="/delete-file" hx-target="#files-list" class="mt-2">
-								%s
 								<input type="hidden" name="objectName" value="%s">
 								<button type="submit" class="bg-red-500 hover:bg-red-700 text-white text-xs py-1 px-2 rounded">
 									Delete
@@ -388,7 +310,7 @@ func ListFilesHandler() http.HandlerFunc {
 							</form>
 						</div>
 					</div>
-				`, publicURL, attrs.Name, attrs.Name, attrs.Size/1024, attrs.Created.Format("2006-01-02"), csrfField, attrs.Name)
+				`, publicURL, attrs.Name, attrs.Name, attrs.Size/1024, attrs.Created.Format("2006-01-02"), attrs.Name)
 				
 				w.Write([]byte(fileHTML))
 			}
@@ -406,6 +328,72 @@ func ListFilesHandler() http.HandlerFunc {
 		// Close the HTML
 		w.Write([]byte(`
 				</div>
+			</div>
+		`))
+	}
+}
+
+// DeleteFileHandler deletes a file from Google Cloud Storage
+func DeleteFileHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Only allow POST requests for deletion
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		
+		// Extract the object name from the request
+		if err := r.ParseForm(); err != nil {
+			log.Printf("Error parsing form: %v", err)
+			http.Error(w, "Error parsing form", http.StatusBadRequest)
+			return
+		}
+		
+		objectName := r.FormValue("objectName")
+		if objectName == "" {
+			http.Error(w, "Object name not provided", http.StatusBadRequest)
+			return
+		}
+		
+		log.Printf("Request to delete object: %s", objectName)
+		
+		// Set a reasonable timeout
+		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+		defer cancel()
+		
+		// Get bucket name from environment
+		bucketName := GetBucketName()
+		
+		// Check if storageClient is initialized
+		if storageClient == nil {
+			log.Println("Storage client not initialized, initializing now")
+			if err := InitStorage(ctx); err != nil {
+				log.Printf("Failed to initialize storage client: %v", err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+		}
+		
+		// Delete the object
+		object := storageClient.Bucket(bucketName).Object(objectName)
+		if err := object.Delete(ctx); err != nil {
+			log.Printf("Error deleting object %s: %v", objectName, err)
+			http.Error(w, "Error deleting file", http.StatusInternalServerError)
+			return
+		}
+		
+		log.Printf("Successfully deleted object: %s", objectName)
+		
+		// Return success response for HTMX
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(`
+			<div class="delete-success bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4">
+				<p>File deleted successfully!</p>
+				<form hx-get="/list-files" hx-target="#files-list" class="mt-2">
+					<button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white text-xs py-1 px-2 rounded">
+						Refresh File List
+					</button>
+				</form>
 			</div>
 		`))
 	}

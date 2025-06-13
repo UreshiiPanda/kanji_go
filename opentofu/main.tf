@@ -23,7 +23,7 @@ resource "google_storage_bucket" "app_images" {
   
   # CORS configuration
   cors {
-    origin          = ["http://localhost:8080", "https://kanji-go-pdjzxrqjaq-uc.a.run.app"]
+    origin          = ["http://localhost:8080", "https://kanji-go-pdjzxrqjaq-uc.a.run.app", "https://kanji-go-111333019928.us-central1.run.app"]
     method          = ["GET", "POST", "PUT", "DELETE"]
     response_header = ["Content-Type"]
     max_age_seconds = 3600
